@@ -1,0 +1,121 @@
+// Fuction to cargar cargarPaises
+cargarDatos = url => {
+    return new Promise((resolve, reject) => {
+        fetch(url).then(response => {
+            if (response.status !== 200)
+                return reject(response.statusText)
+            response.json().then(datos => resolve(datos))
+        }).catch(error => reject(error))
+    })
+}
+
+/* function cargarDatos(url) {
+    return new Promise(function (resolve, reject) {
+        fetch(url).then(function (response) {
+            response.json().then(function (datos) {
+                resolve(datos);
+            })
+            
+        })
+        
+    })
+} */
+
+/* var cargarPaises = (continente => {
+    
+    // cargarDatos("https://restcountries.com/v3.1/region/" + continente).then(datos => {
+    cargarDatos(`https://restcountries.com/v3.1/region/${continente}`).then(datos => {
+        let selectPaises = document.querySelector("#selectPais")
+        selectPaises.innerHTML = "";
+        let option = document.createElement("option");
+        option.value = "0";
+        option.text = "Selecciona un pais...";
+        selectPaises.appendChild(option);
+        datos.sort((a, b) => a.name.official.localeCompare(b.name.official))
+        datos.forEach(pais => {
+            let option = document.createElement("option");
+            option.value = pais.name.common;
+            option.text = pais.translations.spa.official;
+            selectPaises.appendChild(option);
+        }).catch(_error => {
+            alert("el error " .error);          
+        })
+    })
+}) */
+
+
+
+// Flag Butoon Function
+// Event listener for flag button
+let flagBtn = document.getElementById("flag-btn");
+flagBtn.addEventListener("click", () => {
+    let country = document.getElementById("pais").value; // Get the country name from search input
+    if (country) {
+        fetchAndDisplayFlag(country);
+    } else {
+        alert("Please enter a country name first!");
+    }
+});
+
+
+created by me
+// Fuction for Flag button
+async function flagFn() {
+    
+    let h1 = document.createElement("h1");
+    h1.innerHTML = "Flags";
+}
+
+// Event listener for the flag button
+/* let flagBtn = document.getElementById("flag-btn");
+flagBtn.addEventListener("click", () => {
+    // First, clear the contents of the main tag
+    let infoDisplay = document.getElementById("infoDisplay");
+    infoDisplay.innerHTML = '';  // This empties the main content
+
+    if (window.flagURL) {
+        let flag = document.createElement("img");
+        flag.src = window.flagURL;
+        flag.style.width = "200px";  // Adjust the size as needed
+        flag.style.display = "block";
+        flag.style.margin = "0 auto";  // Center the flag
+
+        // Append the flag to the main content
+        infoDisplay.appendChild(flag);
+    } else {
+        alert("Please select a country first!");
+    }
+}); */
+
+// Function to show translations in the console
+/* async function mostrarTraducciones(countryName) {
+    try {
+        const data = await cargarDatos(`https://restcountries.com/v3.1/name/${countryName}`);
+        
+        if (data.length === 0) {
+            console.log("Country not found.");
+            return;
+        }
+        
+        const countryData = data[0];
+        const translations = countryData.translations;
+
+        for (const [langCode, names] of Object.entries(translations)) {
+            console.log(`Language Code: ${langCode}`);
+            console.log(`Official Name: ${names.official}`);
+            console.log(`Common Name: ${names.common}`);
+            console.log('----------------------');
+        }
+    } catch (error) {
+        console.error('Error fetching translation data:', error);
+    }
+} */
+
+
+    let monedas = document.querySelector("#moneda");
+    monedas = Object.values(pais[0].currencies)
+    monedas.forEach((moneda) => {
+        let li = document.createElement("li")
+        li.innerHTML = moneda.name + "-" + moneda.symbol;
+        monedas.appendChild(li);
+    })
