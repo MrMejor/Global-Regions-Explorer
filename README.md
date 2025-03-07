@@ -19,9 +19,6 @@ Global Regions Explorer is a web application that helps users explore countries,
 ## 📂 Installation
 ```sh
 git clone https://github.com/MrMejor/global-regions-explorer.git
-cd global-regions-explorer
-npm install
-ng serve
 ```
 Then open the app in your browser at `http://localhost:4200/`.
 
