@@ -20,7 +20,6 @@ Global Regions Explorer is a web application that helps users explore countries,
 ```sh
 git clone https://github.com/MrMejor/global-regions-explorer.git
 ```
-Then open the app in your browser at `http://localhost:4200/`.
 
 ## 🎯 How to Use
 1. Start typing a country or region in the **search bar**.
