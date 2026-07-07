@@ -4,171 +4,900 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+    <title>Global Departures — Country Explorer</title>
+    <meta name="description" content="Look up any country's capital, geography, currency, flag, and more.">
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231B1E22'/%3E%3Cpath d='M16 6l3 8-3 8-3-8z' fill='%23F5A623'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <script src="./ajex.js" defer></script>
+
+    <style>
+        :root {
+            --board-charcoal: #1B1E22;
+            --panel-ink: #24282E;
+            --panel-ink-2: #2C3138;
+            --flap-amber: #F5A623;
+            --depart-teal: #2FB8A6;
+            --alert-rust: #C1493D;
+            --chalk: #EDEDE3;
+            --steel: #8B92A0;
+            --hairline: rgba(237, 237, 227, 0.14);
+            --font-mono: 'Space Mono', ui-monospace, monospace;
+            --font-body: 'Inter', system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--board-charcoal);
+            color: var(--chalk);
+            font-family: var(--font-body);
+        }
+
+        body {
+            min-height: 100vh;
+        }
+
+        a { color: inherit; }
+
+        ::selection { background: var(--flap-amber); color: var(--board-charcoal); }
+
+        :focus-visible {
+            outline: 2px solid var(--flap-amber);
+            outline-offset: 3px;
+        }
+
+        .wrap {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ---------- Header ---------- */
+
+        .site-header {
+            padding: 28px 0 18px;
+            border-bottom: 1px dashed var(--hairline);
+        }
+
+        .site-header .wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: var(--panel-ink);
+            border: 1px solid var(--hairline);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .brand-mark svg { display: block; }
+
+        .brand-text {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .brand-text span {
+            display: block;
+            font-family: var(--font-body);
+            font-weight: 400;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            color: var(--steel);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--steel);
+        }
+
+        .clock {
+            color: var(--chalk);
+            letter-spacing: 0.03em;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--panel-ink);
+            border: 1px solid var(--hairline);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+        }
+
+        .status-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--depart-teal);
+        }
+
+        .status-pill.state-error .dot { background: var(--alert-rust); }
+        .status-pill.state-loading .dot { background: var(--flap-amber); animation: pulse 1s ease-in-out infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ---------- Ticker ---------- */
+
+        .ticker {
+            border-bottom: 1px solid var(--hairline);
+            background: var(--panel-ink);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ticker-track {
+            display: inline-block;
+            padding: 8px 0;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            color: var(--steel);
+            text-transform: uppercase;
+            animation: ticker-scroll 32s linear infinite;
+        }
+
+        .ticker-track span {
+            margin-right: 48px;
+        }
+
+        @keyframes ticker-scroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        /* ---------- Hero / controls ---------- */
+
+        .hero {
+            padding: 56px 0 32px;
+        }
+
+        .hero-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--flap-amber);
+            margin: 0 0 10px;
+        }
+
+        .hero h1 {
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: clamp(32px, 5vw, 48px);
+            line-height: 1.05;
+            margin: 0 0 12px;
+            letter-spacing: -0.01em;
+        }
+
+        .hero p.lede {
+            color: var(--steel);
+            font-size: 16px;
+            max-width: 52ch;
+            margin: 0 0 32px;
+            line-height: 1.55;
+        }
+
+        .control-panel {
+            background: var(--panel-ink);
+            border: 1px solid var(--hairline);
+            border-radius: 12px;
+            padding: 22px;
+        }
+
+        .control-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .field label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--steel);
+            margin-bottom: 8px;
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            background: var(--board-charcoal);
+            border: 1px solid var(--hairline);
+            border-radius: 8px;
+            color: var(--chalk);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            padding: 11px 12px;
+            appearance: none;
+        }
+
+        select {
+            background-image: linear-gradient(45deg, transparent 50%, var(--steel) 50%), linear-gradient(135deg, var(--steel) 50%, transparent 50%);
+            background-position: calc(100% - 18px) center, calc(100% - 13px) center;
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+        }
+
+        select:focus, input[type="text"]:focus {
+            border-color: var(--flap-amber);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .search-row .field { flex: 1; }
+
+        button {
+            font-family: var(--font-mono);
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--flap-amber);
+            color: var(--board-charcoal);
+            border: none;
+            border-radius: 8px;
+            padding: 11px 20px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .btn-primary:hover { box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.25); }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .search-status {
+            margin-top: 10px;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            color: var(--alert-rust);
+            min-height: 1.2em;
+        }
+
+        .search-status.is-empty { display: none; }
+
+        /* Quick nav */
+
+        .quick-nav {
+            display: flex;
+            gap: 8px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .quick-nav button {
+            background: transparent;
+            border: 1px solid var(--hairline);
+            color: var(--steel);
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 12px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .quick-nav button:hover {
+            border-color: var(--flap-amber);
+            color: var(--flap-amber);
+        }
+
+        /* ---------- Announcement (warning) ---------- */
+
+        .announcement {
+            margin-top: 18px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px dashed var(--alert-rust);
+            background: rgba(193, 73, 61, 0.12);
+            color: #F0B4AC;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            display: none;
+        }
+
+        .announcement.is-visible { display: block; }
+
+        /* ---------- Results ---------- */
+
+        .results {
+            padding: 8px 0 72px;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .results.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .results.hidden { display: none; }
+
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--flap-amber);
+            margin: 0 0 14px;
+        }
+
+        section.block {
+            margin-bottom: 28px;
+            scroll-margin-top: 24px;
+        }
+
+        /* Boarding pass card */
+
+        .boarding-pass {
+            background: var(--panel-ink);
+            border: 1px solid var(--hairline);
+            border-radius: 14px;
+            display: grid;
+            grid-template-columns: 1fr 140px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bp-main {
+            padding: 28px;
+            position: relative;
+        }
+
+        .bp-main::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 0;
+            border-right: 1px dashed var(--hairline);
+        }
+
+        .bp-main::before, .bp-side .notch-top, .bp-side .notch-bottom {
+            content: "";
+        }
+
+        .bp-notch {
+            position: absolute;
+            right: 132px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--board-charcoal);
+            z-index: 2;
+        }
+
+        .bp-notch.top { top: -10px; }
+        .bp-notch.bottom { bottom: -10px; }
+
+        .bp-gate-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--steel);
+            margin-bottom: 6px;
+        }
+
+        .bp-country-name {
+            font-size: clamp(26px, 4vw, 34px);
+            font-weight: 700;
+            margin: 0 0 4px;
+            line-height: 1.1;
+        }
+
+        .bp-official {
+            color: var(--steel);
+            font-size: 14px;
+            margin: 0 0 20px;
+        }
+
+        .bp-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px 24px;
+        }
+
+        .bp-stat dt {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--steel);
+            margin: 0 0 4px;
+        }
+
+        .bp-stat dd {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--flap-amber);
+            margin: 0;
+        }
+
+        .bp-side {
+            background: var(--panel-ink-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .barcode {
+            width: 100%;
+            height: 90px;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--chalk) 0px, var(--chalk) 2px,
+                transparent 2px, transparent 5px,
+                var(--chalk) 5px, var(--chalk) 6px,
+                transparent 6px, transparent 10px,
+                var(--chalk) 10px, var(--chalk) 13px,
+                transparent 13px, transparent 16px
+            );
+            opacity: 0.85;
+        }
+
+        /* Data board rows */
+
+        .data-board {
+            background: var(--panel-ink);
+            border: 1px solid var(--hairline);
+            border-radius: 14px;
+            padding: 6px 24px;
+        }
+
+        .board-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 16px 0;
+            border-bottom: 1px dashed var(--hairline);
+        }
+
+        .board-row:last-child { border-bottom: none; }
+
+        .board-cell dt {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--steel);
+            margin: 0 0 4px;
+        }
+
+        .board-cell dd {
+            margin: 0;
+            font-family: var(--font-mono);
+            font-size: 15px;
+        }
+
+        .flap-in {
+            animation: flap-drop 0.35s ease-out;
+        }
+
+        @keyframes flap-drop {
+            from { opacity: 0; transform: translateY(-6px) rotateX(35deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .flap-in { animation: none; }
+            .ticker-track { animation: none; }
+            .results { transition: none; }
+        }
+
+        /* Codes ticket stub */
+
+        .codes-strip {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .code-chip {
+            background: var(--panel-ink-2);
+            border: 1px solid var(--hairline);
+            border-radius: 8px;
+            padding: 10px 14px;
+            min-width: 90px;
+        }
+
+        .code-chip dt {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--steel);
+            margin: 0 0 4px;
+        }
+
+        .code-chip dd {
+            margin: 0;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        /* Flag panel */
+
+        .flag-panel {
+            background: var(--panel-ink);
+            border: 1px solid var(--hairline);
+            border-radius: 14px;
+            padding: 28px;
+            text-align: center;
+        }
+
+        .flag-panel img {
+            max-width: 260px;
+            width: 100%;
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+
+        .flag-caption {
+            margin-top: 14px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--depart-teal);
+        }
+
+        /* Text list sections */
+
+        .text-panel {
+            background: var(--panel-ink);
+            border: 1px solid var(--hairline);
+            border-radius: 14px;
+            padding: 22px 24px;
+        }
+
+        .text-panel + .text-panel { margin-top: 16px; }
+
+        .text-panel p {
+            margin: 0;
+            font-size: 14.5px;
+            line-height: 1.6;
+            color: var(--chalk);
+        }
+
+        .translation-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px 20px;
+        }
+
+        .translation-list li {
+            font-size: 13.5px;
+            line-height: 1.5;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--hairline);
+        }
+
+        .translation-list strong {
+            color: var(--flap-amber);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.06em;
+        }
+
+        /* ---------- Footer ---------- */
+
+        .site-footer {
+            border-top: 1px dashed var(--hairline);
+            padding: 26px 0 40px;
+        }
+
+        .site-footer .wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .footer-note {
+            font-size: 13px;
+            color: var(--steel);
+        }
+
+        .footer-note strong { color: var(--chalk); }
+
+        .footer-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            letter-spacing: 0.04em;
+            color: var(--chalk);
+            border: 1px solid var(--hairline);
+            border-radius: 999px;
+            padding: 8px 14px;
+            transition: border-color 0.15s ease;
+        }
+
+        .footer-link:hover { border-color: var(--flap-amber); }
+
+        .footer-link svg { display: block; }
+
+        /* ---------- Responsive ---------- */
+
+        @media (max-width: 640px) {
+            .control-row { grid-template-columns: 1fr; }
+            .search-row { flex-direction: column; align-items: stretch; }
+            .boarding-pass { grid-template-columns: 1fr; }
+            .bp-main::after { display: none; }
+            .bp-side { display: none; }
+            .bp-grid { grid-template-columns: 1fr 1fr; }
+            .board-row { grid-template-columns: 1fr; gap: 10px; }
+            .header-status { font-size: 11px; }
+        }
+    </style>
 </head>
 
-<body style="background-color: #f0f8ff;">
-    <div class="container my-5 py-4">
+<body>
 
-        <!-- Header Section -->
-        <header class="mb-4 rounded" style="background-color: #ffeed3;">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="my-2 p-2">
-                    <a href="javascript:location.reload()">
-                        <img src="./resources/globe.svg" alt="Globe" class="me-3 img-fluid" style="max-width: 100px;">
-                    </a>
-                </div>
-                <div>
-                    <h1>Conoces mundo</h1>
-                </div>
-
-                <!-- Search bar -->
-                <div class="input-group w-25 ms-4 d-flex p-2">
-                    <input type="text" id="search" class="form-control px-3" placeholder="Search Country">
-                    <button id="search-btn" class="btn btn-primary px-4" type="button">Go</button>
+    <header class="site-header">
+        <div class="wrap">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M9 2l4 7-4 7-4-7z" fill="#F5A623"/>
+                    </svg>
+                </span>
+                <div class="brand-text">
+                    Global Departures
+                    <span>Country Explorer</span>
                 </div>
             </div>
-        </header>
-        
-        <!-- Table for Continents and Countries -->
-        <main class="table-responsive my-4">
-            <div class="d-flex align-items-center justify-content-center">
-                <h2>Continente:</h2>
-                <select name="continente" id="selectContinente" class="form-select w-25 me-3">
-                    <option value="0">Selecciona Continente...</option>
-                    <option value="europe">Europea</option>
-                    <option value="africa">Africa</option>
-                    <option value="americas">America</option>
-                    <option value="asia">Asia</option>
-                    <option value="oceania">Oceania</option>
-                </select>
-                <h2>Pais:</h2>
-                <select name="Pais" id="selectPais" class="form-select w-25 me-3"></select>
+            <div class="header-status">
+                <span class="clock" id="clock" aria-live="off">--:--:-- UTC</span>
+                <span class="status-pill state-idle" id="status-pill">
+                    <span class="dot" aria-hidden="true"></span>
+                    <span id="status-text">Ready</span>
+                </span>
             </div>
-            <h2 id="warningMessage" style="color: red; display: none;" class="text-center">! Please select a country !</h2>
         </div>
+    </header>
 
-    <!-- Buttons -->
-    <div class="d-flex mx-3 mb-3 flex-grow-1">
-        <button class="btn btn-primary mx-2 w-100" id="general-btn">General</button>
-        <button class="btn btn-primary mx-2 w-100">Geographical Data</button>
-        <button class="btn btn-primary mx-2 w-100" id="flag-btn">Flag</button>
-        <button class="btn btn-primary mx-2 w-100">Translation</button>
+    <div class="ticker" aria-hidden="true">
+        <div class="ticker-track">
+            <span>DATA SOURCE — REST COUNTRIES API v5</span>
+            <span>195 DESTINATIONS AVAILABLE</span>
+            <span>ALL ROUTES OPERATIONAL</span>
+            <span>DATA SOURCE — REST COUNTRIES API v5</span>
+            <span>195 DESTINATIONS AVAILABLE</span>
+            <span>ALL ROUTES OPERATIONAL</span>
+        </div>
     </div>
 
-    <!-- Selected Country and Information Display -->
-    <div id="infoDisplay" class="mt-4 text-center">
-        <table class="table w-50 mx-auto">
-            <tr>
-                <th class="rounded-2">Selected Country</th>
-                <th class="rounded-2">Capital</th>
-                <th class="rounded-2">Officail name</th>
-            </tr>
-            <tr>
-                <td class="rounded-2" id="nombrePais"></td>
-                <td class="rounded-2" id="capPais"></td>
-                <td class="rounded-2" id="offPais"></td>
-            </tr>
-            <tr>
-                <th class="rounded-2">Region</th>
-                <th class="rounded-2">Sub region</th>
-                <th class="rounded-2">Area</th>
-            </tr>
-            <tr>
-                <td class="rounded-2" id="region"></td>
-                <td class="rounded-2" id="subRePais"></td>
-                <td class="rounded-2" id="areaPais"></td>
-            </tr>
-            <tr>
-                <th class="rounded-2">Continent</th>
-                <th class="rounded-2">Population</th>
-                <th class="rounded-2">Moneda</th>
-            </tr>
-            <tr>
-                <td class="rounded-2" id="continent"></td>
-                <td class="rounded-2" id="population"></td>
-                <td class="rounded-2" id="moneda"></td>
-            </tr>
-        </table>
+    <main>
+        <div class="wrap">
+            <section class="hero">
+                <p class="hero-eyebrow">Now boarding</p>
+                <h1>Where to next?</h1>
+                <p class="lede">Pick a continent, choose a country, or search a destination directly. Every board fills in live from the REST Countries API.</p>
 
-        
-        <div id="infoDisplay" class="mt-4 text-center">
-            <table class="table table-borderless w-50 mx-auto">
-                <tr>
-                    <th class="rounded-2">Domain</td>
-                    <th class="rounded-2">cca2</td>
-                    <th class="rounded-2">ccn3</td>
-                    <th class="rounded-2">cca3</td>
-                    <th class="rounded-2">cioc</td>
-                </tr>
-                <tr>
-                    <td  id="domain"></td>
-                    <td  id="cca2"></td>
-                    <td  id="ccn3"></td>
-                    <td  id="cca3"></td>
-                    <td  id="cioc"></td>
+                <div class="control-panel">
+                    <div class="control-row">
+                        <div class="field">
+                            <label for="selectContinente">Continent</label>
+                            <select id="selectContinente">
+                                <option value="0">Select continent…</option>
+                                <option value="europe">Europe</option>
+                                <option value="africa">Africa</option>
+                                <option value="americas">Americas</option>
+                                <option value="asia">Asia</option>
+                                <option value="oceania">Oceania</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="selectPais">Country</label>
+                            <select id="selectPais">
+                                <option value="0">Select a continent first…</option>
+                            </select>
+                        </div>
+                    </div>
 
-                </tr>
-            </table>
-        </div>
+                    <div class="search-row">
+                        <div class="field">
+                            <label for="search">Or search directly</label>
+                            <input type="text" id="search" placeholder="e.g. Japan">
+                        </div>
+                        <button class="btn-primary" id="search-btn" type="button">Board</button>
+                    </div>
+                    <p class="search-status is-empty" id="search-status" role="status"></p>
 
-        <div id="infoDisplay" class="mt-4 text-center">
-            <table class="table table-borderless w-50 mx-auto">
-                <tr>
-                    <th class="rounded-2">Flag</td>
-                    <th class="rounded-2">Coat of Arms</td>
-                </tr>
-                <tr>
-                    <td><img class="w-50 mx-auto my-auto" id="flag"></td>
-                    <td><img class="w-50 mx-auto my-auto" id="arms"></td>
-                </tr>
-            </table>
-        </div>
-        <div id="infoDisplay" class="mt-4 text-center">
-            <table class="table table-borderless w-50 mx-auto">
-                <tr>
-                    <th class="rounded-2">Alternate spellings</th>
-                </tr>
-                <tr>
-                    <td class="rounded-2" id="alt-spell"></td>
-                </tr>
-            </table>
-        </div>
-        <div id="infoDisplay" class="mt-4 text-center">
-            <table class="table table-borderless w-50 mx-auto">
-                <tr>
-                    <th class="rounded-2">Borders</th>
-                </tr>
-                <tr>
-                    <td class="rounded-2" id="border"></td>
-                </tr>
-            </table>
-        </div>
-        <div id="infoDisplay" class="mt-4 text-center">
-            <table class="table table-borderless w-50 mx-auto">
-                <tr>
-                    <th class="rounded-2">Translations</th>
-                </tr>
-                <tr>
-                    <td class="rounded-2" id="translation"></td>
-                </tr>
-            </table>
-        </div>
-        <ul id="countryList" class="mt-4 text-center"></ul>
-        <!-- Footer -->
-        <footer class="bg-white text-center py-3 mt-5">
-            <div class="container">
-                <p class="mb-0">Created by <strong>Jashanjeet Singh Kuka</strong></p>
-                <a href="https://github.com/your-github-profile" target="_blank" class="d-inline-block mt-2">
-                    <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-                        alt="GitHub Logo" style="width: 30px;">MrMejor</img>
-                </a>
+                    <div class="quick-nav">
+                        <button type="button" id="general-btn" data-target="section-overview">Overview</button>
+                        <button type="button" data-target="section-geo">Geography</button>
+                        <button type="button" id="flag-btn" data-target="section-flag">Flag</button>
+                        <button type="button" data-target="section-lang">Languages</button>
+                    </div>
+
+                    <p class="announcement" id="warningMessage" role="alert">! Select or search a country before boarding !</p>
+                </div>
+            </section>
+
+            <div class="results hidden" id="results">
+
+                <section class="block" id="section-overview">
+                    <p class="section-label">Overview</p>
+                    <div class="boarding-pass">
+                        <div class="bp-main">
+                            <p class="bp-gate-label">Destination</p>
+                            <h2 class="bp-country-name" id="nombrePais">—</h2>
+                            <p class="bp-official" id="offPais">—</p>
+                            <dl class="bp-grid">
+                                <div class="bp-stat">
+                                    <dt>Gate / Capital</dt>
+                                    <dd id="capPais">—</dd>
+                                </div>
+                                <div class="bp-stat">
+                                    <dt>Continent</dt>
+                                    <dd id="continent">—</dd>
+                                </div>
+                                <div class="bp-stat">
+                                    <dt>Population</dt>
+                                    <dd id="population">—</dd>
+                                </div>
+                                <div class="bp-stat">
+                                    <dt>Currency</dt>
+                                    <dd id="moneda">—</dd>
+                                </div>
+                            </dl>
+                        </div>
+                        <span class="bp-notch top" aria-hidden="true"></span>
+                        <span class="bp-notch bottom" aria-hidden="true"></span>
+                        <div class="bp-side">
+                            <div class="barcode" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="block" id="section-geo">
+                    <p class="section-label">Geography</p>
+                    <div class="data-board">
+                        <div class="board-row">
+                            <div class="board-cell">
+                                <dt>Region</dt>
+                                <dd id="region">—</dd>
+                            </div>
+                            <div class="board-cell">
+                                <dt>Sub region</dt>
+                                <dd id="subRePais">—</dd>
+                            </div>
+                        </div>
+                        <div class="board-row">
+                            <div class="board-cell">
+                                <dt>Area</dt>
+                                <dd id="areaPais">—</dd>
+                            </div>
+                            <div class="board-cell">
+                                <dt>Borders</dt>
+                                <dd id="border">—</dd>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-panel" style="margin-top:16px;">
+                        <p class="section-label" style="margin-bottom:8px;">Codes</p>
+                        <div class="codes-strip">
+                            <div class="code-chip">
+                                <dt>Domain</dt>
+                                <dd id="domain">—</dd>
+                            </div>
+                            <div class="code-chip">
+                                <dt>cca2</dt>
+                                <dd id="cca2">—</dd>
+                            </div>
+                            <div class="code-chip">
+                                <dt>ccn3</dt>
+                                <dd id="ccn3">—</dd>
+                            </div>
+                            <div class="code-chip">
+                                <dt>cca3</dt>
+                                <dd id="cca3">—</dd>
+                            </div>
+                            <div class="code-chip">
+                                <dt>cioc</dt>
+                                <dd id="cioc">—</dd>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="block" id="section-flag">
+                    <p class="section-label">Flag</p>
+                    <div class="flag-panel">
+                        <img id="flag" alt="Country flag" width="260" height="174">
+                        <p class="flag-caption">Verified arrival</p>
+                    </div>
+                </section>
+
+                <section class="block" id="section-lang">
+                    <p class="section-label">Languages &amp; names</p>
+                    <div class="text-panel">
+                        <p class="bp-gate-label" style="margin-bottom:8px;">Alternate spellings</p>
+                        <p id="alt-spell">—</p>
+                    </div>
+                    <div class="text-panel">
+                        <p class="bp-gate-label" style="margin-bottom:12px;">Translations</p>
+                        <ul class="translation-list" id="translation"></ul>
+                    </div>
+                </section>
+
             </div>
-        </footer>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap">
+            <p class="footer-note">Built by <strong>Jashanjeet Singh Kuka</strong> · data from REST Countries API v5</p>
+            <a href="https://github.com/MrMejor" target="_blank" rel="noopener" class="footer-link">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                MrMejor
+            </a>
+        </div>
+    </footer>
+
 </body>
 
 </html>
