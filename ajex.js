@@ -1,5 +1,4 @@
-const API_KEY = "rc_live_1d086ccbb22b4cf68f3dadbdca6cc8f9"; // get one at restcountries.com/sign-up
-const BASE_URL = "https://api.restcountries.com/countries/v5";
+const PROXY_URL = "/api/countries";
 
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -35,10 +34,13 @@ function startClock() {
 
 // ---------- API helpers ----------
 
-async function cargarDatos(url) {
-    let response = await fetch(url, {
-        headers: { "Authorization": `Bearer ${API_KEY}` }
-    });
+// "path" is just the part after /countries/v5/, e.g. "region/europe" or "names.common/France"
+async function cargarDatos(path, extraParams = {}) {
+    const url = new URL(PROXY_URL, window.location.origin);
+    url.searchParams.set("path", path);
+    Object.entries(extraParams).forEach(([key, value]) => url.searchParams.set(key, value));
+
+    let response = await fetch(url.toString());
     if (!response.ok) throw new Error("Network response was not ok");
     let json = await response.json();
     return json.data.objects; // v5 wraps results in data.objects
@@ -47,7 +49,7 @@ async function cargarDatos(url) {
 async function cargarPaises(continente) {
     try {
         setStatus("loading", "Loading");
-        const datos = await cargarDatos(`${BASE_URL}/region/${continente}?limit=100`);
+        const datos = await cargarDatos(`region/${continente}`, { limit: 100 });
         let selectPaises = document.querySelector("#selectPais");
         selectPaises.innerHTML = "";
 
@@ -84,7 +86,7 @@ function setField(id, value) {
 async function cargarPais(paisNombre) {
     try {
         setStatus("loading", "Boarding");
-        const data = await cargarDatos(`${BASE_URL}/names.common/${encodeURIComponent(paisNombre)}`);
+        const data = await cargarDatos(`names.common/${encodeURIComponent(paisNombre)}`);
         const pais = data[0];
 
         setField("nombrePais", pais.names.common || "N/A");
@@ -194,7 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             setSearchStatus("Searching…", false);
-            const data = await cargarDatos(`${BASE_URL}/names.common/${encodeURIComponent(input)}`);
+            const data = await cargarDatos(`names.common/${encodeURIComponent(input)}`);
             await cargarPais(data[0].names.common);
             warningMessage.classList.remove("is-visible");
             setSearchStatus(`Found ${data[0].names.common}.`, false);
